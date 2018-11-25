@@ -12,7 +12,7 @@ namespace TestsGenerator
 			this.threadsCount = threadsCount;
 		}
 
-		public List<Task<string>> ReadFromFilesAsync(List<string> paths)
+		public List<Task<string>> ReadFromFiles(List<string> paths)
 		{
 			List<Task<string>> readTasks = new List<Task<string>>();
 			foreach (string path in paths)
@@ -20,14 +20,22 @@ namespace TestsGenerator
 				readTasks.Add(ReadFromFile(path));
 			}
 
+			for (int i = 0; i< threadsCount; i++)
+			{
+				RunFreeTasksAsync(readTasks);
+			}
+			return readTasks;
 		}
 
-		private async void RunFreeReadTask(List<Task<string>> readTasks)
+		private async void RunFreeTasksAsync(List<Task<string>> readTasks)
 		{
 			foreach(Task<string> readTask in readTasks)
 			{
 				if (readTask.Status == TaskStatus.Created)
+				{
+					readTask.Start();
 					await readTask;
+				}
 			}
 			
 		}
@@ -39,13 +47,5 @@ namespace TestsGenerator
 				return new Task<string>(reader.ReadToEnd);
 			}
 		}
-		/*
-		private async Task<string> ReadFromFileAsync(string path)
-		{
-			using (StreamReader reader = new StreamReader(path))
-			{
-				return await reader.ReadToEndAsync();
-			}
-		}*/
 	}
 }

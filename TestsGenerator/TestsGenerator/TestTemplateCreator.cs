@@ -7,11 +7,11 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace TestsGenerator
 {
-	internal class TestClassCreator
+	internal class TestTemplateCreator
 	{
-		public List<GeneratedTestTemplate> GenerateFileAsync(string source)
+		public List<CreatedTestTemplate> GenerateFileAsync(string source)
 		{
-			List<GeneratedTestTemplate> result = new List<GeneratedTestTemplate>();
+			List<CreatedTestTemplate> result = new List<CreatedTestTemplate>();
 
 			SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(source);
 			CompilationUnitSyntax compilationUnitSyntax = syntaxTree.GetCompilationUnitRoot();
@@ -49,7 +49,7 @@ namespace TestsGenerator
 
 
 				
-				GeneratedTestTemplate resultElement = new GeneratedTestTemplate();
+				CreatedTestTemplate resultElement = new CreatedTestTemplate();
 				resultElement.Text = compilationUnit.NormalizeWhitespace().ToFullString();
 				resultElement.Name = $"{className}Tests.cs";
 				result.Add(resultElement);
@@ -100,10 +100,12 @@ namespace TestsGenerator
 
 		private string GetMethodName(List<string> methods, string method, int count)
 		{
-			var res = method + (count == 0 ? "" : count.ToString());
-			if (methods.Contains(res)) return GetMethodName(methods, method, count + 1);
+			var result = method + (count == 0 ? "" : count.ToString());
 
-			return res;
+			if (methods.Contains(result))
+				return GetMethodName(methods, method, count + 1);
+
+			return result;
 		}
 	}
 }

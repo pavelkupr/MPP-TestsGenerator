@@ -4,12 +4,12 @@ using System.Collections.Generic;
 
 namespace TestsGenerator
 {
-    internal class Reader
+    internal class ReaderBlock
     {
 		static object locker = new object();
 		private int threadsCount;
 
-		public Reader(int threadsCount)
+		public ReaderBlock(int threadsCount)
 		{
 			this.threadsCount = threadsCount;
 		}

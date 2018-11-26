@@ -4,22 +4,22 @@ using System.IO;
 
 namespace TestsGenerator
 {
-	internal class Writer
+	internal class WriterBlock
 	{
 		private static object locker = new object();
 		private int threadsCount;
 		private readonly string outputDirectoryPath;
 		private int currWaiters;
-		public Writer(int threadsCount, string outputDirectoryPath)
+		public WriterBlock(int threadsCount, string outputDirectoryPath)
 		{
 			this.threadsCount = threadsCount;
 			this.outputDirectoryPath = outputDirectoryPath;
 			currWaiters = 0;
 		}
-		public Task WriteToFiles(List<Task<List<GeneratedTestTemplate>>> generationTasks)
+		public Task WriteToFiles(List<Task<List<CreatedTestTemplate>>> generationTasks)
 		{
-			Dictionary<Task<List<GeneratedTestTemplate>>, Task> keyValue = new Dictionary<Task<List<GeneratedTestTemplate>>, Task>();
-			foreach (Task<List<GeneratedTestTemplate>> generationTask in generationTasks)
+			Dictionary<Task<List<CreatedTestTemplate>>, Task> keyValue = new Dictionary<Task<List<CreatedTestTemplate>>, Task>();
+			foreach (Task<List<CreatedTestTemplate>> generationTask in generationTasks)
 			{
 				keyValue.Add(generationTask, new Task(() => WriteToFile(generationTask)));
 			}
@@ -31,9 +31,9 @@ namespace TestsGenerator
 
 			return Task.WhenAll(keyValue.Values);
 		}
-		private async void RunEveryReadyTaskAsync(List<Task<List<GeneratedTestTemplate>>> generationTasks, Dictionary<Task<List<GeneratedTestTemplate>>, Task> keyValue)
+		private async void RunEveryReadyTaskAsync(List<Task<List<CreatedTestTemplate>>> generationTasks, Dictionary<Task<List<CreatedTestTemplate>>, Task> keyValue)
 		{
-			Task<List<GeneratedTestTemplate>> complitedGenerationTask = null;
+			Task<List<CreatedTestTemplate>> complitedGenerationTask = null;
 			Task writeTask = null;
 			bool isWaitingData = false;
 			while (true)
@@ -68,7 +68,7 @@ namespace TestsGenerator
 
 		}
 
-		private void WriteToFile(Task<List<GeneratedTestTemplate>> generateResults)
+		private void WriteToFile(Task<List<CreatedTestTemplate>> generateResults)
 		{
 			var results = generateResults.Result;
 			foreach (var result in results)

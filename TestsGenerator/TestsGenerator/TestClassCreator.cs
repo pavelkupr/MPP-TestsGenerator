@@ -4,35 +4,40 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
+
 namespace TestsGenerator
 {
-	class TestClassCreator
+	internal class TestClassCreator
 	{
-		public List<GeneratedResult> GenerateFileAsync(string source)
+		public List<GeneratedTestTemplate> GenerateFileAsync(string source)
 		{
-			var res = new List<GeneratedResult>();
-			
-			var syntaxTree = CSharpSyntaxTree.ParseText(source);
-			var compilationUnitSyntax = syntaxTree.GetCompilationUnitRoot();
+			List<GeneratedTestTemplate> result = new List<GeneratedTestTemplate>();
 
-			var classes = compilationUnitSyntax.DescendantNodes().OfType<ClassDeclarationSyntax>();
+			SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(source);
+			CompilationUnitSyntax compilationUnitSyntax = syntaxTree.GetCompilationUnitRoot();
 
-			foreach (var classDeclaration in classes)
+			foreach (ClassDeclarationSyntax classInfo in compilationUnitSyntax.DescendantNodes().OfType<ClassDeclarationSyntax>())
 			{
-				var publicMethods = classDeclaration.DescendantNodes().OfType<MethodDeclarationSyntax>()
-					.Where(x => x.Modifiers.Any(y => y.ValueText == "public"));
+				string namespaceName = (classInfo.Parent as NamespaceDeclarationSyntax)?.Name.ToString();
+				string className = classInfo.Identifier.ValueText;
+				List<string> testMethodsName = new List<string>();
+				List<MethodDeclarationSyntax> publicMethods = new List<MethodDeclarationSyntax>();
+				foreach( var method in classInfo.DescendantNodes().OfType<MethodDeclarationSyntax>())
+				{
+					if (method.Modifiers.Any(x => x.ValueText == "public"))
+					{
+						publicMethods.Add(method);
+					}
+				}
 
-				var ns = (classDeclaration.Parent as NamespaceDeclarationSyntax)?.Name.ToString();
-				var className = classDeclaration.Identifier.ValueText;
-				var methodsName = new List<string>();
 				foreach (var method in publicMethods)
 				{
-					var name = GetMethodName(methodsName, method.Identifier.ToString(), 0);
-					methodsName.Add(name);
+					var name = GetMethodName(testMethodsName, method.Identifier.ToString(), 0);
+					testMethodsName.Add(name);
 				}
 
 				NamespaceDeclarationSyntax namespaceDeclarationSyntax = NamespaceDeclaration(QualifiedName(
-					IdentifierName(ns), IdentifierName("Test")));
+					IdentifierName(namespaceName), IdentifierName("Test")));
 
 				CompilationUnitSyntax compilationUnit = CompilationUnit()
 					.WithUsings(GetUsings())
@@ -40,19 +45,17 @@ namespace TestsGenerator
 						.WithMembers(SingletonList<MemberDeclarationSyntax>(ClassDeclaration(className + "Test")
 							.WithAttributeLists(SingletonList(AttributeList(SingletonSeparatedList(Attribute(IdentifierName("TestClass"))))))
 							.WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)))
-							.WithMembers(GetMethods(methodsName))))));
+							.WithMembers(GetMethods(testMethodsName))))));
 
 
-
-				var outputPath = $"{className}Tests.cs";
-				res.Add(new GeneratedResult
-				{
-					Text = compilationUnit.NormalizeWhitespace().ToFullString(),
-					Name = outputPath
-				});
+				
+				GeneratedTestTemplate resultElement = new GeneratedTestTemplate();
+				resultElement.Text = compilationUnit.NormalizeWhitespace().ToFullString();
+				resultElement.Name = $"{className}Tests.cs";
+				result.Add(resultElement);
 			}
 
-			return res;
+			return result;
 		}
 
 		private SyntaxList<UsingDirectiveSyntax> GetUsings()
@@ -102,11 +105,5 @@ namespace TestsGenerator
 
 			return res;
 		}
-	}
-
-	internal class GeneratedResult
-	{
-		public string Text { get; set; }
-		public string Name { get; set; }
 	}
 }

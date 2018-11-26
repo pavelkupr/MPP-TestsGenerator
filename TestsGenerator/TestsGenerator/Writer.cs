@@ -1,15 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.IO;
 
 namespace TestsGenerator
 {
-	class Writer
+	internal class Writer
 	{
-		static object locker = new object();
+		private static object locker = new object();
 		private int threadsCount;
 		private readonly string outputDirectoryPath;
 		private int currWaiters;
@@ -19,12 +16,12 @@ namespace TestsGenerator
 			this.outputDirectoryPath = outputDirectoryPath;
 			currWaiters = 0;
 		}
-		public Task WriteToFiles(List<Task<List<GeneratedResult>>> generationTasks)
+		public Task WriteToFiles(List<Task<List<GeneratedTestTemplate>>> generationTasks)
 		{
-			Dictionary<Task<List<GeneratedResult>>, Task> keyValue = new Dictionary<Task<List<GeneratedResult>>, Task>();
-			foreach (Task<List<GeneratedResult>> generationTask in generationTasks)
+			Dictionary<Task<List<GeneratedTestTemplate>>, Task> keyValue = new Dictionary<Task<List<GeneratedTestTemplate>>, Task>();
+			foreach (Task<List<GeneratedTestTemplate>> generationTask in generationTasks)
 			{
-				keyValue.Add(generationTask, new Task(() => WriteFile(generationTask)));
+				keyValue.Add(generationTask, new Task(() => WriteToFile(generationTask)));
 			}
 
 			for (int i = 0; i < threadsCount; i++)
@@ -34,27 +31,27 @@ namespace TestsGenerator
 
 			return Task.WhenAll(keyValue.Values);
 		}
-		private async void RunEveryReadyTaskAsync(List<Task<List<GeneratedResult>>> generationTasks, Dictionary<Task<List<GeneratedResult>>, Task> keyValue)
+		private async void RunEveryReadyTaskAsync(List<Task<List<GeneratedTestTemplate>>> generationTasks, Dictionary<Task<List<GeneratedTestTemplate>>, Task> keyValue)
 		{
-			Task<List<GeneratedResult>> complitedGenerationTask = null;
+			Task<List<GeneratedTestTemplate>> complitedGenerationTask = null;
 			Task writeTask = null;
-			bool isWaitGeneration = false;
+			bool isWaitingData = false;
 			while (true)
 			{
 				lock (locker)
 				{
-					if (generationTasks.Count - currWaiters > 0 && !isWaitGeneration)
+					if (generationTasks.Count - currWaiters > 0 && !isWaitingData)
 					{
 						currWaiters++;
-						isWaitGeneration = true;
+						isWaitingData = true;
 					}
-					else if (isWaitGeneration)
+					else if (isWaitingData)
 					{
 						keyValue.TryGetValue(complitedGenerationTask, out writeTask);
 						if (writeTask.Status == TaskStatus.Created)
 						{
 							currWaiters--;
-							isWaitGeneration = false;
+							isWaitingData = false;
 							generationTasks.Remove(complitedGenerationTask);
 							writeTask.Start();
 						}
@@ -63,7 +60,7 @@ namespace TestsGenerator
 						break;
 				}
 
-				if (isWaitGeneration)
+				if (isWaitingData)
 					complitedGenerationTask = await Task.WhenAny(generationTasks);
 				else
 					await writeTask;
@@ -71,7 +68,7 @@ namespace TestsGenerator
 
 		}
 
-		private void WriteFile(Task<List<GeneratedResult>> generateResults)
+		private void WriteToFile(Task<List<GeneratedTestTemplate>> generateResults)
 		{
 			var results = generateResults.Result;
 			foreach (var result in results)

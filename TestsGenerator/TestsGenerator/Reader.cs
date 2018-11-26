@@ -4,10 +4,11 @@ using System.Collections.Generic;
 
 namespace TestsGenerator
 {
-    public class Reader
+    internal class Reader
     {
 		static object locker = new object();
 		private int threadsCount;
+
 		public Reader(int threadsCount)
 		{
 			this.threadsCount = threadsCount;
@@ -18,7 +19,7 @@ namespace TestsGenerator
 			List<Task<string>> readTasks = new List<Task<string>>();
 			foreach (string path in paths)
 			{
-				readTasks.Add(new Task<string>(() => CreateReadFromFileTask(path)));
+				readTasks.Add(new Task<string>(() => ReadFromFile(path)));
 			}
 
 			for (int i = 0; i< threadsCount; i++)
@@ -43,9 +44,9 @@ namespace TestsGenerator
 			
 		}
 
-		private string CreateReadFromFileTask(string path)
+		private string ReadFromFile(string path)
 		{
-			System.Threading.Thread.Sleep(5000);
+			System.Threading.Thread.Sleep(1000);
 			using (StreamReader reader = new StreamReader(path))
 			{
 				return reader.ReadToEnd();

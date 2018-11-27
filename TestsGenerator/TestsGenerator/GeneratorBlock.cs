@@ -70,8 +70,8 @@ namespace TestsGenerator
 
 		private List<CreatedTestTemplate> Generate(Task<string> readTask)
 		{
-			TestTemplateCreator classCreator = new TestTemplateCreator();
-			return classCreator.GenerateFileAsync(readTask.Result);
+			TestTemplateCreator templateCreator = new TestTemplateCreator();
+			return templateCreator.GenerateTestTemplate(readTask.Result);
 		}
 	}
 }

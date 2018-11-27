@@ -1,6 +1,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Generators;
 
-namespace Generators.Test
+namespace Generators.Tests
 {
     [TestClass]
     public class DoubleGeneratorTest

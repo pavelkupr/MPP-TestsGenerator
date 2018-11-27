@@ -17,6 +17,16 @@ namespace TestsGenerator
 			writer = new WriterBlock(writeThreads, outPath);
 		}
 
+		public void SetReadMethod(ReadFromFileDelegate readFunc)
+		{
+			reader.ReadFunc = readFunc;
+		}
+
+		public void SetWriteMethod(WriteToFileDelegate writeFunc)
+		{
+			writer.WriteFunc = writeFunc;
+		}
+
 		public Task StartTestCreation(string inPath)
 		{
 			List<string> filePaths = new List<string>();

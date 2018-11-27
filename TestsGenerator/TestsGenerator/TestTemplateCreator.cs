@@ -9,11 +9,11 @@ namespace TestsGenerator
 {
 	internal class TestTemplateCreator
 	{
-		public List<CreatedTestTemplate> GenerateFileAsync(string source)
+		public List<CreatedTestTemplate> GenerateTestTemplate(string code)
 		{
 			List<CreatedTestTemplate> result = new List<CreatedTestTemplate>();
 
-			SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(source);
+			SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(code);
 			CompilationUnitSyntax compilationUnitSyntax = syntaxTree.GetCompilationUnitRoot();
 
 			foreach (ClassDeclarationSyntax classInfo in compilationUnitSyntax.DescendantNodes().OfType<ClassDeclarationSyntax>())
@@ -21,89 +21,82 @@ namespace TestsGenerator
 				string namespaceName = (classInfo.Parent as NamespaceDeclarationSyntax)?.Name.ToString();
 				string className = classInfo.Identifier.ValueText;
 				List<string> testMethodsName = new List<string>();
-				List<MethodDeclarationSyntax> publicMethods = new List<MethodDeclarationSyntax>();
-				foreach( var method in classInfo.DescendantNodes().OfType<MethodDeclarationSyntax>())
+
+				foreach(MethodDeclarationSyntax method in classInfo.DescendantNodes().OfType<MethodDeclarationSyntax>())
 				{
 					if (method.Modifiers.Any(x => x.ValueText == "public"))
 					{
-						publicMethods.Add(method);
+						testMethodsName.Add(GetTestMethodName(testMethodsName, method.Identifier.ToString()));
 					}
 				}
 
-				foreach (var method in publicMethods)
-				{
-					var name = GetMethodName(testMethodsName, method.Identifier.ToString(), 0);
-					testMethodsName.Add(name);
-				}
-
 				NamespaceDeclarationSyntax namespaceDeclarationSyntax = NamespaceDeclaration(QualifiedName(
-					IdentifierName(namespaceName), IdentifierName("Test")));
+					IdentifierName(namespaceName), IdentifierName("Tests")));
+
+				ClassDeclarationSyntax classDeclarationSyntax = ClassDeclaration(className + "Test")
+					.WithAttributeLists(SingletonList(AttributeList(SingletonSeparatedList(Attribute(IdentifierName("TestClass"))))))
+					.WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)));
 
 				CompilationUnitSyntax compilationUnit = CompilationUnit()
-					.WithUsings(GetUsings())
+					.WithUsings(GetUsings(namespaceName))
 					.WithMembers(SingletonList<MemberDeclarationSyntax>(namespaceDeclarationSyntax
-						.WithMembers(SingletonList<MemberDeclarationSyntax>(ClassDeclaration(className + "Test")
-							.WithAttributeLists(SingletonList(AttributeList(SingletonSeparatedList(Attribute(IdentifierName("TestClass"))))))
-							.WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)))
-							.WithMembers(GetMethods(testMethodsName))))));
+					.WithMembers(SingletonList<MemberDeclarationSyntax>(classDeclarationSyntax
+					.WithMembers(CreateTestMethods(testMethodsName))))));
 
 
 				
 				CreatedTestTemplate resultElement = new CreatedTestTemplate();
 				resultElement.Text = compilationUnit.NormalizeWhitespace().ToFullString();
-				resultElement.Name = $"{className}Tests.cs";
+				resultElement.Name = className + "Tests.cs";
 				result.Add(resultElement);
 			}
 
 			return result;
 		}
 
-		private SyntaxList<UsingDirectiveSyntax> GetUsings()
+		private SyntaxList<UsingDirectiveSyntax> GetUsings(string namespaceName)
 		{
-			List<UsingDirectiveSyntax> usingDirective = new List<UsingDirectiveSyntax>()
-			{
-				UsingDirective(
-					QualifiedName(
-						QualifiedName(
-							QualifiedName(
-								IdentifierName("Microsoft"),
-								IdentifierName("VisualStudio")),
-							IdentifierName("TestTools")),
-						IdentifierName("UnitTesting")))
-			};
+			List<UsingDirectiveSyntax> usingDirective = new List<UsingDirectiveSyntax>();
+			usingDirective.Add(UsingDirective(QualifiedName(QualifiedName(QualifiedName(
+				IdentifierName("Microsoft"),
+				IdentifierName("VisualStudio")),
+				IdentifierName("TestTools")),
+				IdentifierName("UnitTesting"))));
+			usingDirective.Add(UsingDirective(IdentifierName(namespaceName)));
 
 			return List(usingDirective);
 		}
 
-		private SyntaxList<MemberDeclarationSyntax> GetMethods(List<string> methods)
+		private SyntaxList<MemberDeclarationSyntax> CreateTestMethods(List<string> methods)
 		{
-			var result = new List<MemberDeclarationSyntax>();
-			foreach (var method in methods) result.Add(GetMethod(method));
+			List<MemberDeclarationSyntax> result = new List<MemberDeclarationSyntax>();
+
+			foreach (string method in methods)
+				result.Add(CreateTestMethod(method));
 
 			return List(result);
 		}
 
-		private MethodDeclarationSyntax GetMethod(string name)
+		private MethodDeclarationSyntax CreateTestMethod(string name)
 		{
-			return MethodDeclaration(
-					PredefinedType(Token(SyntaxKind.VoidKeyword)), Identifier(name + "Test"))
-				.WithAttributeLists(SingletonList(AttributeList(SingletonSeparatedList(
-								Attribute(IdentifierName("TestMethod"))))))
-				.WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)))
-				.WithBody(Block(ExpressionStatement(InvocationExpression(
-					MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
-						IdentifierName("Assert"), IdentifierName("Fail")))
-							.WithArgumentList(ArgumentList(SingletonSeparatedList(
-								Argument(LiteralExpression(SyntaxKind.StringLiteralExpression,
-									Literal("autogenerated")))))))));
+			MethodDeclarationSyntax title = MethodDeclaration(PredefinedType(Token(SyntaxKind.VoidKeyword)), Identifier(name + "Test"))
+				.WithAttributeLists(SingletonList(AttributeList(SingletonSeparatedList(Attribute(IdentifierName("TestMethod"))))))
+				.WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)));
+
+			BlockSyntax body = Block(ExpressionStatement(InvocationExpression(
+				MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,IdentifierName("Assert"), IdentifierName("Fail")))
+				.WithArgumentList(ArgumentList(SingletonSeparatedList(Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, 
+				Literal("autogenerated"))))))));
+
+			return title.WithBody(body);
 		}
 
-		private string GetMethodName(List<string> methods, string method, int count)
+		private string GetTestMethodName(List<string> methodsName, string methodName, int count = 0)
 		{
-			var result = method + (count == 0 ? "" : count.ToString());
+			string result = methodName + (count == 0 ? "" :"_"+count.ToString());
 
-			if (methods.Contains(result))
-				return GetMethodName(methods, method, count + 1);
+			if (methodsName.Contains(result))
+				return GetTestMethodName(methodsName, methodName, ++count);
 
 			return result;
 		}

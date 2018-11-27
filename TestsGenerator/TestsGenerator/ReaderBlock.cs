@@ -4,14 +4,19 @@ using System.Collections.Generic;
 
 namespace TestsGenerator
 {
-    internal class ReaderBlock
+	public delegate string ReadFromFileDelegate(string path);
+
+	internal class ReaderBlock
     {
 		static object locker = new object();
 		private int threadsCount;
-
+		private ReadFromFileDelegate readFunc;
+		internal ReadFromFileDelegate ReadFunc { set { readFunc = value; } }
+		
 		public ReaderBlock(int threadsCount)
 		{
 			this.threadsCount = threadsCount;
+			readFunc = CommonReadFromFile;
 		}
 
 		public List<Task<string>> ReadFromFiles(List<string> paths)
@@ -19,9 +24,9 @@ namespace TestsGenerator
 			List<Task<string>> readTasks = new List<Task<string>>();
 			foreach (string path in paths)
 			{
-				readTasks.Add(new Task<string>(() => ReadFromFile(path)));
+				readTasks.Add(new Task<string>(() => readFunc.Invoke(path)));
 			}
-
+			
 			for (int i = 0; i< threadsCount; i++)
 			{
 				RunFreeTasksAsync(readTasks);
@@ -31,22 +36,28 @@ namespace TestsGenerator
 
 		private async void RunFreeTasksAsync(List<Task<string>> readTasks)
 		{
-			foreach(Task<string> readTask in readTasks)
+			bool isWaitingData = false;
+			foreach (Task<string> readTask in readTasks)
 			{
 				lock (locker)
 				{
 					if (readTask.Status == TaskStatus.Created)
+					{
 						readTask.Start();
+						isWaitingData = true;
+					}
 				}
-				if (readTask.Status != TaskStatus.Created)
+				if (isWaitingData == true)
+				{
 					await readTask;
+					isWaitingData = false;
+				}
 			}
 			
 		}
 
-		private string ReadFromFile(string path)
+		private string CommonReadFromFile(string path)
 		{
-			System.Threading.Thread.Sleep(1000);
 			using (StreamReader reader = new StreamReader(path))
 			{
 				return reader.ReadToEnd();

@@ -9,7 +9,7 @@ namespace TestsGeneratorConsole
 	{
 		static void Main(string[] args)
 		{
-			TestsCreator testsCreator = new TestsCreator(2,2,2, @"D:\GitHub\MPP-TestsGenerator\TestsGenerator\GeneratedTests");
+			TestsCreator testsCreator = new TestsCreator(2,2,2, @"\GeneratedTests");
 			testsCreator.SetReadMethod(ReadFromFile);
 			testsCreator.SetWriteMethod(WriteToFile);
 			testsCreator.StartTestCreation(@"D:\GitHub\MPP-TestsGenerator\TestsGenerator\Classes").Wait();

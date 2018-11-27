@@ -29,9 +29,12 @@ namespace TestsGenerator
 						testMethodsName.Add(GetTestMethodName(testMethodsName, method.Identifier.ToString()));
 					}
 				}
-
-				NamespaceDeclarationSyntax namespaceDeclarationSyntax = NamespaceDeclaration(QualifiedName(
-					IdentifierName(namespaceName), IdentifierName("Tests")));
+				NamespaceDeclarationSyntax namespaceDeclarationSyntax;
+				if (namespaceName != null)
+					namespaceDeclarationSyntax = NamespaceDeclaration(QualifiedName(
+						IdentifierName(namespaceName), IdentifierName("Tests")));
+				else
+					namespaceDeclarationSyntax = NamespaceDeclaration(IdentifierName("Tests"));
 
 				ClassDeclarationSyntax classDeclarationSyntax = ClassDeclaration(className + "Test")
 					.WithAttributeLists(SingletonList(AttributeList(SingletonSeparatedList(Attribute(IdentifierName("TestClass"))))))
@@ -62,7 +65,8 @@ namespace TestsGenerator
 				IdentifierName("VisualStudio")),
 				IdentifierName("TestTools")),
 				IdentifierName("UnitTesting"))));
-			usingDirective.Add(UsingDirective(IdentifierName(namespaceName)));
+			if (namespaceName != null)
+				usingDirective.Add(UsingDirective(IdentifierName(namespaceName)));
 
 			return List(usingDirective);
 		}

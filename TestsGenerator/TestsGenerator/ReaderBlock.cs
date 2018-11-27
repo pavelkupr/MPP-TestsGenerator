@@ -11,7 +11,7 @@ namespace TestsGenerator
 		static object locker = new object();
 		private int threadsCount;
 		private ReadFromFileDelegate readFunc;
-		internal ReadFromFileDelegate ReadFunc { set { readFunc = value; } }
+		internal ReadFromFileDelegate ReadFunc { set { readFunc = value ?? CommonReadFromFile; } }
 		
 		public ReaderBlock(int threadsCount)
 		{

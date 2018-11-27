@@ -14,7 +14,7 @@ namespace TestsGenerator
 		private readonly string outputDirectoryPath;
 		private int currWaiters;
 		private WriteToFileDelegate writeFunc;
-		internal WriteToFileDelegate WriteFunc { set { writeFunc = value; } }
+		internal WriteToFileDelegate WriteFunc { set { writeFunc = value ?? CommonWriteToFile; } }
 
 		public WriterBlock(int threadsCount, string outputDirectoryPath)
 		{
